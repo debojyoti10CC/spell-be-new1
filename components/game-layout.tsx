@@ -12,30 +12,63 @@ import { useRouter } from "next/navigation"
 import { DisqualificationTracker } from "./disqualification-tracker"
 
 interface GameLayoutProps {
-  gameTitle: string
-  gameIcon: React.ReactNode
-  instructions: string[]
-  children: React.ReactNode
-  onGameComplete: (score: number) => void
-  currentQuestion: number
-  totalQuestions: number
-  score: number
-  timeLeft: number
+  // Simple interface props
+  title?: string
+  level?: number
+  onStart?: () => void
+  description?: string
+  
+  // Complex interface props
+  gameTitle?: string
+  gameIcon?: React.ReactNode
+  instructions?: string[]
+  onGameComplete?: (score: number) => void
+  currentQuestion?: number
+  totalQuestions?: number
+  score?: number
+  timeLeft?: number
   difficulty?: "Basic" | "Expert" | "Master" | "Legendary" | "Ultimate"
+  
+  children: React.ReactNode
 }
 
-export default function GameLayout({
+export function GameLayout({
+  // Simple interface
+  title,
+  level,
+  onStart,
+  description,
+  
+  // Complex interface
   gameTitle,
   gameIcon,
   instructions,
-  children,
   onGameComplete,
   currentQuestion,
   totalQuestions,
   score,
   timeLeft,
   difficulty = "Basic",
+  
+  children,
 }: GameLayoutProps) {
+  // Determine which interface is being used
+  const isSimpleInterface = title && level !== undefined && onStart && description
+  const isComplexInterface = gameTitle && gameIcon && instructions && onGameComplete && currentQuestion !== undefined && totalQuestions !== undefined && score !== undefined && timeLeft !== undefined
+
+  // Use simple interface if provided, otherwise use complex interface
+  const finalTitle = title || gameTitle || "Game"
+  const finalLevel = level || 1
+  const finalOnStart = onStart || (() => {})
+  const finalDescription = description || ""
+  const finalGameIcon = gameIcon || "🎮"
+  const finalInstructions = instructions || []
+  const finalOnGameComplete = onGameComplete || (() => {})
+  const finalCurrentQuestion = currentQuestion || 1
+  const finalTotalQuestions = totalQuestions || 1
+  const finalScore = score || 0
+  const finalTimeLeft = timeLeft || 0
+
   const [gameStarted, setGameStarted] = useState(false)
   const [cameraEnabled, setCameraEnabled] = useState(false)
   const [showInstructions, setShowInstructions] = useState(true)
@@ -214,6 +247,11 @@ The game cannot proceed without camera access.`)
     setShowInstructions(false)
     await setupCamera()
     setGameStarted(true)
+    
+    // Call the onStart function if provided
+    if (finalOnStart) {
+      finalOnStart()
+    }
   }
 
   const formatTime = (seconds: number) => {
@@ -235,6 +273,41 @@ The game cannot proceed without camera access.`)
       default:
         return "bg-green-500"
     }
+  }
+
+  // If using simple interface, show simplified layout
+  if (isSimpleInterface) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100">
+        {/* Header */}
+        <header className="bg-white/95 backdrop-blur-sm shadow-lg p-4 border-b-2 border-purple-200">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <Button
+                onClick={() => router.push("/")}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 hover:bg-purple-50 border-purple-200"
+              >
+                <Home size={16} />
+                Home
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-purple-600">{finalTitle}</h1>
+                <Badge variant="outline">Level {finalLevel}</Badge>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container mx-auto px-6 py-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
+            {children}
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -365,10 +438,10 @@ The game cannot proceed without camera access.`)
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                 >
-                  {gameIcon}
+                  {finalGameIcon}
                 </motion.div>
                 <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                  {gameTitle}
+                  {finalTitle}
                 </h2>
                 <Badge className={`${getDifficultyColor(difficulty)} text-white px-4 py-1 text-sm`}>
                   {difficulty} Level
@@ -380,7 +453,7 @@ The game cannot proceed without camera access.`)
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">📋 Game Rules</h3>
                   <ul className="space-y-3">
-                    {instructions.map((instruction, index) => (
+                    {finalInstructions.map((instruction, index) => (
                       <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                         <span className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
                           {index + 1}
@@ -462,9 +535,9 @@ The game cannot proceed without camera access.`)
                 Home
               </Button>
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{gameIcon}</div>
+                <div className="text-3xl">{finalGameIcon}</div>
                 <div>
-                  <h1 className="text-xl font-bold text-purple-600">{gameTitle}</h1>
+                  <h1 className="text-xl font-bold text-purple-600">{finalTitle}</h1>
                   <Badge className={`${getDifficultyColor(difficulty)} text-white text-xs`}>{difficulty}</Badge>
                 </div>
               </div>
@@ -484,29 +557,29 @@ The game cannot proceed without camera access.`)
               {/* Progress */}
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-600">
-                  Question {currentQuestion} of {totalQuestions}
+                  Question {finalCurrentQuestion} of {finalTotalQuestions}
                 </span>
-                <Progress value={(currentQuestion / totalQuestions) * 100} className="w-24 h-2" />
+                <Progress value={(finalCurrentQuestion / finalTotalQuestions) * 100} className="w-24 h-2" />
               </div>
 
               {/* Score */}
               <Badge variant="secondary" className="text-lg px-4 py-2 bg-purple-100 text-purple-800">
                 <Star className="mr-2" size={16} />
-                {score} pts
+                {finalScore} pts
               </Badge>
 
               {/* Timer */}
               <div
                 className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono font-bold ${
-                  timeLeft < 300
+                  finalTimeLeft < 300
                     ? "bg-red-100 text-red-600 animate-pulse"
-                    : timeLeft < 600
+                    : finalTimeLeft < 600
                       ? "bg-yellow-100 text-yellow-600"
                       : "bg-green-100 text-green-600"
                 }`}
               >
                 <Clock size={18} />
-                <span className="text-lg">{formatTime(timeLeft)}</span>
+                <span className="text-lg">{formatTime(finalTimeLeft)}</span>
               </div>
 
               {/* Face Detection Alert */}
@@ -646,3 +719,5 @@ The game cannot proceed without camera access.`)
     </div>
   )
 }
+
+export default GameLayout
